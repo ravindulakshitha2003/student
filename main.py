@@ -5,9 +5,8 @@ import pandas as pd
 import os
 
 app = Flask(__name__)
-CORS(app)  # allow all origins
+CORS(app)
 
-# Load model
 model = joblib.load("student_model.pkl")
 
 @app.route("/", methods=["GET"])
@@ -19,9 +18,12 @@ def predict():
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "No input data"}), 400
+        return jsonify({"error": "No input data provided"}), 400
 
+    # Convert JSON to DataFrame
     df = pd.DataFrame([data])
+
+    # Predict
     prediction = model.predict(df)[0]
 
     return jsonify({
