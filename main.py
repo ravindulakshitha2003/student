@@ -1,35 +1,28 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import pandas as pd
-import os
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
 
+# Allow all origins (fix CORS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Load trained model
 model = joblib.load("student_model.pkl")
 
-@app.route("/", methods=["GET"])
+@app.get("/")
 def home():
-    return {"message": "Student Exam Prediction API running"}
+    return {"message": "Student Prediction API is running"}
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No input data provided"}), 400
-
-    # Convert JSON to DataFrame
+@app.post("/predict")
+def predict(data: dict):
     df = pd.DataFrame([data])
-
-    # Predict
-    prediction = model.predict(df)[0]
-
-    return jsonify({
-        "predicted_exam_score": round(float(prediction), 2)
-    })
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port)
+    prediction = model.predict(df)
+    return {"prediction": float(prediction[0])}
