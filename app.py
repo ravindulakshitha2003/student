@@ -5,7 +5,7 @@ import numpy as np
 app = Flask(__name__)
 
 # Load trained model
-with open("model.pkl", "rb") as f:
+with open("student_model.pkl", "rb") as f:
     model = pickle.load(f)
 
 @app.route("/")
@@ -21,3 +21,4 @@ def predict():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
