@@ -1,17 +1,21 @@
-from fastapi import FastAPI
-import pickle
+from flask import Flask, request, jsonify
+import joblib
 import pandas as pd
 
-app = FastAPI()
+app = Flask(__name__)
 
-model = pickle.load(open("student_model.pkl", "rb"))
+model = joblib.load("student_exam_model.joblib")
 
-@app.get("/")
-def home():
-    return {"message": "Student Exam Score API running"}
-
-@app.post("/predict")
-def predict(data: dict):
+@app.route("/predict", methods=["POST"])
+def predict():
+    data = request.json
     df = pd.DataFrame([data])
-    prediction = model.predict(df)
-    return {"predicted_exam_score": float(prediction[0])}
+
+    prediction = model.predict(df)[0]
+
+    return jsonify({
+        "predicted_exam_score": round(float(prediction), 2)
+    })
+
+if __name__ == "__main__":
+    app.run(port=5000)
