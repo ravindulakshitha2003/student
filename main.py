@@ -1,16 +1,27 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import joblib
 import pandas as pd
+import os
 
 app = Flask(__name__)
+CORS(app)  # allow all origins
 
-model = joblib.load("student_exam_model.joblib")
+# Load model
+model = joblib.load("student_model.pkl")
+
+@app.route("/", methods=["GET"])
+def home():
+    return {"message": "Student Exam Prediction API running"}
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.json
-    df = pd.DataFrame([data])
+    data = request.get_json()
 
+    if not data:
+        return jsonify({"error": "No input data"}), 400
+
+    df = pd.DataFrame([data])
     prediction = model.predict(df)[0]
 
     return jsonify({
@@ -18,6 +29,5 @@ def predict():
     })
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
