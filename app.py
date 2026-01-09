@@ -1,24 +1,78 @@
-from flask import Flask, request, jsonify
-import pickle
+# app.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import joblib
 import numpy as np
 
-app = Flask(__name__)
+# -------------------------------
+# Step 1: Load your trained model
+# -------------------------------
+model = joblib.load("student_model.pkl")  # Make sure model.pkl is in the same folder
 
-# Load trained model
-with open("student_model.pkl", "rb") as f:
-    model = pickle.load(f)
+# -------------------------------
+# Step 2: Create FastAPI app
+# -------------------------------
+app = FastAPI()
 
-@app.route("/")
-def home():
-    return "ML Model API is running 🚀"
+# -------------------------------
+# Step 3: Enable CORS for all origins
+# -------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.json
-    features = np.array(data["features"]).reshape(1, -1)
-    prediction = model.predict(features)
-    return jsonify({"prediction": prediction[0]})
+# -------------------------------
+# Step 4: Define the expected input
+# -------------------------------
+class StudentData(BaseModel):
+    age: float
+    gender: str
+    course: str
+    study_hours: float
+    class_attendance: float
+    internet_access: str
+    sleep_hours: float
+    sleep_quality: str
+    study_method: str
+    facility_rating: str
+    exam_difficulty: str
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+# -------------------------------
+# Step 5: Define the prediction endpoint
+# -------------------------------
+@app.post("/predict")
+def predict(data: StudentData):
+    # Convert input to list (you may need to encode categorical variables the same way as during training)
+    input_data = [
+        data.age,
+        1 if data.gender.lower() == "male" else 0,
+        1 if data.course.lower() == "diploma" else 0,  # simple encoding example
+        data.study_hours,
+        data.class_attendance,
+        1 if data.internet_access.lower() == "yes" else 0,
+        data.sleep_hours,
+        1 if data.sleep_quality.lower() == "good" else 0,
+        1 if data.study_method.lower() == "coaching" else 0,
+        1 if data.facility_rating.lower() == "high" else 0,
+        1 if data.exam_difficulty.lower() == "hard" else 0
+    ]
 
+    # Convert to numpy array and reshape
+    input_array = np.array(input_data).reshape(1, -1)
+
+    # Make prediction
+    prediction = model.predict(input_array)
+
+    return {"predicted_value": float(prediction[0])}
+
+# -------------------------------
+# Step 6: Root endpoint (optional)
+# -------------------------------
+@app.get("/")
+def read_root():
+    return {"message": "Student Exam Prediction API is running"}
